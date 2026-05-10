@@ -1,0 +1,17 @@
+export const ACHIEVEMENTS = [
+  { id: 'first_workout', name: 'Premier pas', description: 'Complète ton premier workout', icon: '🎯', condition: 'workouts_completed >= 1' },
+  { id: 'streak_3', name: 'En route', description: 'Streak de 3 jours', icon: '🔥', condition: 'streak >= 3' },
+  { id: 'streak_7', name: 'Semaine parfaite', description: 'Streak de 7 jours', icon: '🔥', condition: 'streak >= 7' },
+  { id: 'streak_30', name: 'Machine', description: 'Streak de 30 jours', icon: '🔥', condition: 'streak >= 30' },
+  { id: 'level_5', name: 'Apprenti', description: 'Atteins le niveau 5', icon: '⭐', condition: 'level >= 5' },
+  { id: 'level_10', name: 'Guerrier', description: 'Atteins le niveau 10', icon: '⭐', condition: 'level >= 10' },
+  { id: 'level_20', name: 'Champion', description: 'Atteins le niveau 20', icon: '⭐', condition: 'level >= 20' },
+  { id: 'boss_1', name: 'Tueur de boss', description: 'Vaincs ton premier boss', icon: '⚔️', condition: 'bosses_defeated >= 1' },
+  { id: 'boss_3', name: 'Chasseur', description: 'Vaincs 3 boss', icon: '⚔️', condition: 'bosses_defeated >= 3' },
+  { id: 'perfect_week', name: 'Perfectionniste', description: 'Semaine sans set manqué', icon: '💎', condition: 'perfect_week' },
+  { id: 'force_100', name: 'Colosse', description: '100 points de Force', icon: '💪', condition: 'force >= 100' },
+  { id: 'equilibre_100', name: 'Acrobate', description: '100 points d\'Équilibre', icon: '🤸', condition: 'equilibre >= 100' },
+  { id: 'endurance_100', name: 'Infatigable', description: '100 points d\'Endurance', icon: '🏃', condition: 'endurance >= 100' },
+  { id: 'mystery_1', name: '???', description: 'Continue de progresser...', icon: '❓', condition: 'level >= 25' },
+  { id: 'mystery_2', name: '???', description: 'Les légendes ne dorment jamais', icon: '❓', condition: 'streak >= 60' },
+];
