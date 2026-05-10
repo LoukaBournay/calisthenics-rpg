@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useGame } from '../../context/GameContext';
 import { PROGRAM, getTodayKey } from '../../data/program';
 import { getStreakMultiplier } from '../../engine/streakEngine';
@@ -7,7 +7,22 @@ import { rollRandomDrop } from '../../engine/rewardEscalation';
 import ExerciseCard from './ExerciseCard';
 import RestTimer from './RestTimer';
 import WorkoutComplete from './WorkoutComplete';
+import FeedbackScreen from './FeedbackScreen';
 import NotificationToast from '../layout/NotificationToast';
+
+function applyAdaptations(baseExercises, adaptations, dayKey) {
+  return baseExercises.map(ex => {
+    const key = `${dayKey}_${ex.id}`;
+    const adaptation = adaptations[key];
+    if (!adaptation) return ex;
+    return {
+      ...ex,
+      reps: adaptation.reps,
+      sets: adaptation.sets,
+      note: ex.note + (adaptation.lastRPE <= 2 ? ' 📈' : adaptation.lastRPE >= 4 ? ' 🛡️' : ''),
+    };
+  });
+}
 
 export default function WorkoutDay() {
   const { state, dispatch } = useGame();
@@ -15,16 +30,20 @@ export default function WorkoutDay() {
   const todayProgram = PROGRAM[todayKey];
   const todayDate = new Date().toISOString().split('T')[0];
 
+  const adaptedExercises = useMemo(
+    () => applyAdaptations(todayProgram.exercises, state.adaptations || {}, todayKey),
+    [todayProgram.exercises, state.adaptations, todayKey]
+  );
+
   const [exercises, setExercises] = useState(
-    todayProgram.exercises.map(ex => ({
+    adaptedExercises.map(ex => ({
       ...ex,
       setsCompleted: new Array(ex.sets).fill(false),
     }))
   );
   const [showTimer, setShowTimer] = useState(false);
-  const [completed, setCompleted] = useState(!!state.workouts[todayDate]);
+  const [phase, setPhase] = useState(state.workouts[todayDate] ? 'done' : 'workout');
   const [result, setResult] = useState(null);
-  const [drop, setDrop] = useState(null);
   const [notification, setNotification] = useState(null);
 
   const handleSetComplete = useCallback((exIndex, setIndex) => {
@@ -41,7 +60,6 @@ export default function WorkoutDay() {
 
     const randomDrop = rollRandomDrop();
     if (randomDrop) {
-      setDrop(randomDrop);
       dispatch({ type: 'ADD_INVENTORY', payload: randomDrop });
       setNotification(`${randomDrop.icon} ${randomDrop.name} — ${randomDrop.effect}`);
     }
@@ -58,7 +76,19 @@ export default function WorkoutDay() {
     });
 
     setResult({ totalXP, statsGained });
-    setCompleted(true);
+    setPhase('feedback');
+  };
+
+  const handleFeedbackSubmit = (feedbackData) => {
+    dispatch({
+      type: 'SAVE_FEEDBACK',
+      payload: {
+        dayKey: todayKey,
+        feedbackData,
+        exercises: todayProgram.exercises,
+      },
+    });
+    setPhase('done');
   };
 
   const totalSets = exercises.reduce((sum, ex) => sum + ex.sets, 0);
@@ -67,8 +97,33 @@ export default function WorkoutDay() {
   );
   const progressPercent = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
 
-  if (completed && result) {
+  if (phase === 'done' && result) {
     return <WorkoutComplete result={result} />;
+  }
+
+  if (phase === 'done' && !result) {
+    return (
+      <div style={{ textAlign: 'center', padding: 40 }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
+        <h2 style={{ color: 'var(--accent-green)', marginBottom: 8 }}>Déjà complété</h2>
+        <p style={{ color: 'var(--text-secondary)' }}>
+          Tu as déjà terminé ta séance aujourd'hui. Repose-toi!
+        </p>
+      </div>
+    );
+  }
+
+  if (phase === 'feedback') {
+    return (
+      <div>
+        {result && (
+          <div style={{ textAlign: 'center', marginBottom: 8 }}>
+            <div className="xp-gained" style={{ fontSize: 28 }}>+{result.totalXP} XP</div>
+          </div>
+        )}
+        <FeedbackScreen exercises={exercises} onSubmit={handleFeedbackSubmit} />
+      </div>
+    );
   }
 
   if (todayProgram.exercises.length === 0) {
@@ -82,6 +137,8 @@ export default function WorkoutDay() {
       </div>
     );
   }
+
+  const hasAdaptations = Object.keys(state.adaptations || {}).some(k => k.startsWith(todayKey));
 
   return (
     <div>
@@ -97,6 +154,11 @@ export default function WorkoutDay() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
           <span style={{ fontSize: 20 }}>{todayProgram.icon}</span>
           <span style={{ fontWeight: 700, fontSize: 18 }}>{todayProgram.name}</span>
+          {hasAdaptations && (
+            <span style={{ fontSize: 11, color: 'var(--accent-cyan)', background: 'var(--accent-cyan)15', padding: '2px 8px', borderRadius: 12 }}>
+              Adapté
+            </span>
+          )}
         </div>
         <div className="progress-bar">
           <div

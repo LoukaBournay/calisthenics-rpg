@@ -3,6 +3,7 @@ import { STORAGE_KEY } from '../data/constants';
 import { getXPProgress, getTitleForLevel } from '../engine/levelSystem';
 import { getStreakMultiplier, updateStreak } from '../engine/streakEngine';
 import { calculateWorkoutXP, calculateStatsGained } from '../engine/xpCalculator';
+import { adaptProgram } from '../engine/adaptiveEngine';
 
 const GameContext = createContext(null);
 
@@ -16,10 +17,12 @@ const initialState = {
   stats: { force: 0, equilibre: 0, endurance: 0 },
   streak: { current: 0, longest: 0, lastWorkoutDate: null },
   workouts: {},
+  adaptations: {},
   skills: { unlocked: ['basic_pull', 'basic_dip', 'wall_handstand', 'hollow_hold_30s', 'l_sit_floor', 'planche_lean'], points: 0 },
   bossFights: { current: null, defeated: [], cycle: 0 },
   achievements: [],
   inventory: [],
+  profile: null,
   settings: { soundEnabled: true },
 };
 
@@ -122,6 +125,42 @@ function gameReducer(state, action) {
         skills: {
           ...state.skills,
           points: state.skills.points + (boss.reward?.skillPoint || 0),
+        },
+      };
+    }
+
+    case 'SAVE_FEEDBACK': {
+      const { dayKey, feedbackData, exercises } = action.payload;
+      const adapted = adaptProgram(exercises, feedbackData);
+      const newAdaptations = { ...state.adaptations };
+      adapted.forEach(ex => {
+        if (ex.adapted) {
+          newAdaptations[`${dayKey}_${ex.id}`] = {
+            reps: ex.reps,
+            sets: ex.sets,
+            shouldUpgrade: ex.shouldUpgrade,
+            shouldDowngrade: ex.shouldDowngrade,
+            upgradeTarget: ex.upgradeTarget,
+            downgradeTarget: ex.downgradeTarget,
+            lastRPE: feedbackData[ex.id]?.rpe || 3,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+      });
+      return { ...state, adaptations: newAdaptations };
+    }
+
+    case 'SET_PROFILE': {
+      return { ...state, profile: action.payload };
+    }
+
+    case 'SAVE_ADAPTATION': {
+      const { key, ...values } = action.payload;
+      return {
+        ...state,
+        adaptations: {
+          ...state.adaptations,
+          [key]: { ...(state.adaptations[key] || {}), ...values, updatedAt: new Date().toISOString() },
         },
       };
     }
