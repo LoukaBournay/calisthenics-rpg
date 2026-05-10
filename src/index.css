@@ -32,8 +32,13 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  padding-top: env(safe-area-inset-top);
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 #root {
@@ -77,7 +82,8 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: var(--tab-height);
+  height: calc(var(--tab-height) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
   background: var(--bg-card);
   border-top: 1px solid var(--border);
   display: flex;
